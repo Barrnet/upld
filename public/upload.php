@@ -85,7 +85,6 @@ elseif (isset($_POST['url']))
 	$ext = $tmp_ext['mime'];
 	$ext = str_replace('image/', '', $ext);
 }
-
 // OK, everything checks out so far
 // check size/ext
 if ($size > ALLOWED_SIZE)
@@ -93,7 +92,7 @@ if ($size > ALLOWED_SIZE)
 	// file is too big
 	exit_message('Sorry, this file is too big');
 }
-
+$ext = strtolower($ext);
 // size is OK, make sure EXT is allowed
 if (!in_array($ext, $allowed_ext))
 {
