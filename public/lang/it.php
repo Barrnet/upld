@@ -1,6 +1,7 @@
 <?php 
 //SESSION CSFR
-define ('CSRF_ERROR',"CSRF token mismatch");
+define ('CSRF_ERROR',"Token CSRF non valido");
+define ('INVALID_REQUEST', "Richiesta non valida");
 //ADMIN
 define('NOT_ADMIN',"Non sei autorizzato ad effettuare questa azione.");
 //Register Page
@@ -82,8 +83,8 @@ define('REGISTER_PAGE_TITLE',"Registrati");
 define('REGISTER_PAGE_DESC',"Puoi registrare un account che ti permetterà di tenere traccia delle tue immagini caricate");
 define('REGISTER_LABEL_PLACEHOLDER_MAIL',"email...");
 define('REGISTER_LABEL_PLACEHOLDER_MAIL_CONFIRM',"confirm email...");
-define('REGISTER_LABEL_PLACEHOLDER_PSW',"password... (8 characters minimum)");
-define('REGISTER_LABEL_PLACEHOLDER_PSW_CONFIRM',"confirm password... (8 characters minimum)");
+define('REGISTER_LABEL_PLACEHOLDER_PSW',"nuova password... (8 characters minimum)");
+define('REGISTER_LABEL_PLACEHOLDER_PSW_CONFIRM',"conferma password... (8 characters minimum)");
 define('REGISTER_LABEL_REGISTER_BUTTON',"Register");
 //Main Page 
 define('WELCOME_MAIN_TITLE',"Benvenuto su ".SITE_NAME);

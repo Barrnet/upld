@@ -82,7 +82,7 @@ define('REGISTER_PAGE_TITLE',"Register");
 define('REGISTER_PAGE_DESC',"You can register an account which will allow you to keep track of your uploaded images");
 define('REGISTER_LABEL_PLACEHOLDER_MAIL',"email...");
 define('REGISTER_LABEL_PLACEHOLDER_MAIL_CONFIRM',"confirm email...");
-define('REGISTER_LABEL_PLACEHOLDER_PSW',"password... (8 characters minimum)");
+define('REGISTER_LABEL_PLACEHOLDER_PSW',"new password... (8 characters minimum)");
 define('REGISTER_LABEL_PLACEHOLDER_PSW_CONFIRM',"confirm password... (8 characters minimum)");
 define('REGISTER_LABEL_REGISTER_BUTTON',"Register");
 //Main Page 

@@ -2,55 +2,64 @@
 require('config.php');
 require('common.php');
 // see if anonymous uploads has been disabled, and check if the user is logged in
-if (ANON_UPLOADS === false && !isset($_SESSION['user']))
-{
+if (ANON_UPLOADS === false && !isset($_SESSION['user'])) {
 	exit_message(NO_ANON_UPLOAD);
 }
 // both image and url submitted. wtf, let's get the hell out of here!
-if (isset($_FILES['image']) && isset($_POST['url']))
-{
+if (isset($_FILES['image']) && isset($_POST['url'])) {
 	exit_message(ONLY_ONE_UPLOAD_METHOD);
 }
 // neither submitted - inform user and exit
-if (!isset($_FILES['image']) && !isset($_POST['url']))
-{
+if (!isset($_FILES['image']) && !isset($_POST['url'])) {
 	exit_message(NO_IMAGE_SELECTED);
 }
+//TODO [security] sanitizzare svg o valutare se rimuovere
 $allowed_ext = [
-	'png',
-	'jpg',
+	'gif',
+	'ico',
 	'jpeg',
+	'jpg',
+	'png',
+	'svg',
 	'tiff',
 	'webp',
-	'svg',
-	'svg',
-	'gif',
-	'webp'
 ];
 // user must have submitted either an image or URL
 // check which one and make sure it's valid
 // check for an uploaded image first
-if (isset($_FILES['image']))
-{
-if ($_FILES['image']['error'] == 0)
-	{
+if (isset($_FILES['image'])) {
+	if ($_FILES['image']['error'] == 0) {
 		// user wants to upload via browser
 		// set variables - will check after
 		$size = $_FILES['image']['size'];
 		$ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+
+		// mimetype check
+		$info = getimagesize($_FILES['image']['tmp_name']);
+		if ($info === false) {
+			exit_message(INVALID_IMAGE);
+		}
+		$mime = $info['mime'];
+		$allowed_mime = [
+			'image/gif', // gif
+			'image/x-icon', // ico
+			'image/jpeg', // jpeg/jpg
+			'image/png', // png
+			'image/svg+xml', // svg
+			'image/tiff', // tiff
+			'image/webp', // webp
+		];
+		if (!in_array($mime, $allowed_mime)) {
+			exit_message(INVALID_IMAGE);
+		}
+	} else {
+		exit_message(UPLOAD_ERROR . " " . $_FILES['image']['error'] . '<br /><br />' . ERROR_CODE_WEBSITE);
 	}
-	else
-	{
-		exit_message(UPLOAD_ERROR." ".$_FILES['image']['error'] . '<br /><br />'.ERROR_CODE_WEBSITE);
-	}
-}
-elseif (isset($_POST['url']))
-{
+} elseif (isset($_POST['url'])) {
 	// user wants to download a remote image
 	// make sure URL is valid and set variables - will check after
 	// is remote downloading enabled in conf.php?
-	if (ALLOW_REMOTE !== true)
-	{
+	if (ALLOW_REMOTE !== true) {
 		// remote downloading is disabled - error and exit
 		exit_message(NO_REMOTE_UPLOAD);
 	}
@@ -60,52 +69,43 @@ elseif (isset($_POST['url']))
 		'https'
 	];
 	// check if URL is valid and http/https only
-	if (!filter_var($_POST['url'], FILTER_VALIDATE_URL) || (!in_array(parse_url($_POST['url'], PHP_URL_SCHEME), $allowed_schemes)))
-	{
+	if (!filter_var($_POST['url'], FILTER_VALIDATE_URL) || (!in_array(parse_url($_POST['url'], PHP_URL_SCHEME), $allowed_schemes))) {
 		// not a valid URL
 		exit_message(NOT_VALID_URL);
 	}
 	// if whitelisting is enabled, make sure it's an allowed domain
-	if ((URL_WHITELIST === true) && (!in_array(parse_url($_POST['url'], PHP_URL_HOST), $allowed_urls)))
-	{
+	if ((URL_WHITELIST === true) && (!in_array(parse_url($_POST['url'], PHP_URL_HOST), $allowed_urls))) {
 		exit_message(DOMAIN_NOT_PERMITTED);
 	}
 	// looks good so far, download the image and make sure it's valid
 	$size = get_headers($_POST['url'], 1)['Content-Length'];
-    $tmp_ext = getimagesize($_POST['url']);
+	$tmp_ext = getimagesize($_POST['url']);
 	$ext = $tmp_ext['mime'];
 	$ext = str_replace("image/", "", $ext);
 }
 // OK, everything checks out so far
 // check size/ext
-if ($size > ALLOWED_SIZE)
-{
+if ($size > ALLOWED_SIZE) {
 	// file is too big
 	exit_message(TOO_BIG_FILE);
 }
 $ext = strtolower($ext);
 // size is OK, make sure EXT is allowed
-if (!in_array($ext, $allowed_ext))
-{
+if (!in_array($ext, $allowed_ext)) {
 	// ext not allowed
 	exit_message(INVALID_EXTENSION);
 }
 // size and ext are fine
 // let's set $image to either $_FILES['image'] or $_POST['url'] and check if they're valid
-if (isset($_FILES['image']))
-{
-	if (!getimagesize($_FILES['image']['tmp_name']))
-	{
+if (isset($_FILES['image'])) {
+	if (!getimagesize($_FILES['image']['tmp_name'])) {
 		exit_message(INVALID_IMAGE);
 	}
 	$image = $_FILES['image']['tmp_name'];
-}
-elseif (isset($_POST['url']))
-{
-	if(!isset($size)) $size = 3756608;
+} elseif (isset($_POST['url'])) {
+	if (!isset($size)) $size = 3756608;
 	$image = file_get_contents($_POST['url'], NULL, NULL, NULL, $size);
-	if (!imagecreatefromstring($image))
-	{
+	if (!imagecreatefromstring($image)) {
 		exit_message(INVALID_IMAGE);
 	}
 }
@@ -116,13 +116,12 @@ require('db.php');
 // prepare query
 $exists = mysqli_prepare($db, 'SELECT EXISTS(SELECT 1 FROM `images` WHERE `id` = ?)');
 // create ID and check if it exists in the DB
-do
-{
+//TODO [db] se si sistema il DB in modo che gli id sono già univoci si possono pure far generare al DB stesso
+do {
 	// create ID
 	$id = '';
 	$chars = 'ACDEFHJKLMNPQRTUVWXYZabcdefghijkmnopqrstuvwxyz23479';
-	for ($i = 0; $i < 5; ++$i)
-	{
+	for ($i = 0; $i < 5; ++$i) {
 		$id .= $chars[mt_rand(0, 50)];
 	}
 	// $id is now set to a randomly generated ID
@@ -132,109 +131,94 @@ do
 	++$db_queries;
 	mysqli_stmt_bind_result($exists, $result);
 	mysqli_stmt_fetch($exists);
-	mysqli_stmt_close($exists);
-}
-while ($result === 1);
+} while ($result === 1);
+mysqli_stmt_close($exists);
+
 // write image (this is different depending on whether it's an upload or remote download)
-if (isset($_FILES['image']))
-{
+if (isset($_FILES['image'])) {
 	$image_path = 'images/' . $id . '.' . $ext;
 	// write image
 	move_uploaded_file($image, $image_path);
-}
-else if (isset($_POST['url']))
-{
+} else if (isset($_POST['url'])) {
 	// write image
 	file_put_contents('images/' . $id . '.' . $ext, $image);
 }
 // create thumbnail (only bother if user is logged in)
-if (isset($_SESSION['user']))
-{
-	if (isset($_FILES['image']))
-	{
+if (isset($_SESSION['user'])) {
+	if (isset($_FILES['image'])) {
 		// set source for thumb
-		switch ($ext)
-		{
+		switch ($ext) {
+			case 'gif':
+				$src = imagecreatefromgif($image_path);
+				break;
 			case 'jpeg':
 			case 'jpg':
-				$thumb = imagecreatefromjpeg($image_path);
-			break;
+				$src = imagecreatefromjpeg($image_path);
+				break;
 			case 'png':
-				$thumb = imagecreatefrompng($image_path);
-			break;
+				$src = imagecreatefrompng($image_path);
+				break;
 			case 'webp':
-				$thumb = imagecreatefromwebp($image_path);
-			break;
+				$src = function_exists('imagecreatefromwebp') ? imagecreatefromwebp($image_path) : false; //false if webp not supported
+				break;
+			default:
+				$src = false; // svg, ico, tiff and other files not supported
+		}
+	} else if (isset($_POST['url'])) {
+		$src = imagecreatefromstring($image);
+	}
+	// only create thumbnails for supported files
+	if ($src !== false) {
+		//TODO [refactor] volevo separare l'immagine sorgente dal thumbnail finale ma non ho finito
+		$thumb = $src;
+		$width = imagesx($thumb);
+		$height = imagesy($thumb);
+		if ($width > 200 || $height > 200) {
+			if ($width > $height) {
+				$new_width = 200;
+				// if image height is below 300, don't bother resizing
+				$new_height = floor($height * ($new_width / $width));
+			} else {
+				$new_height = 200;
+				// if image width is below 300, don't bother resizing
+				$new_width = floor($width * ($new_height / $height));
+			}
+		} else {
+			$new_height = $height;
+			$new_width = $width;
+		}
+		$new_thumb = imagecreatetruecolor($new_width, $new_height);
+		switch ($ext) {
+			case 'png':
+				imagefill($new_thumb, 0, 0, imagecolorallocate($new_thumb, 255, 255, 255));
+				imagealphablending($new_thumb, TRUE);
+				break;
 			case 'gif':
-				$thumb = imagecreatefromgif($image_path);
-			break;
+				$new_thumb = imagecolorallocate($thumb, 0, 0, 0);
+				imagecolortransparent($thumb, $new_thumb);
+				break;
 		}
+		imagecopyresized($new_thumb, $thumb, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+		imagedestroy($thumb);
+		imagejpeg($new_thumb, 'thumbs/' . $id . '.jpg', 30);
+		imagedestroy($new_thumb);
 	}
-	else if (isset($_POST['url']))
-	{
-		// set source for thumb
-		$thumb = imagecreatefromstring($image);
-	}
-	$width = imagesx($thumb);
-	$height = imagesy($thumb);
-	if ($width > 200 || $height > 200)
-	{
-		if ($width > $height)
-		{
-			$new_width = 200;
-			// if image height is below 300, don't bother resizing
-			$new_height = floor($height * ($new_width / $width));
-		}
-		else
-		{
-			$new_height = 200;
-			// if image width is below 300, don't bother resizing
-			$new_width = floor($width * ($new_height / $height));
-		}
-	}
-	else
-	{
-		$new_height = $height;
-		$new_width = $width;
-	}
-	$new_thumb = imagecreatetruecolor($new_width, $new_height);
-	switch ($ext)
-	{
-		case 'png':
-			imagefill($new_thumb, 0, 0, imagecolorallocate($new_thumb, 255, 255, 255));
-			imagealphablending($new_thumb, TRUE);
-		break;
-		case 'gif':
-			$new_thumb = imagecolorallocate($thumb, 0, 0, 0);
-			imagecolortransparent($thumb, $new_thumb);
-		break;
-	}
-	imagecopyresized($new_thumb, $thumb, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
-	imagedestroy($thumb);	
-	imagejpeg($new_thumb, 'thumbs/' . $id . '.jpg', 30);
-	imagedestroy($new_thumb);
 }
 // check if user is logged in or not and write info to DB
-if (!isset($_SESSION['user']))
-{
+if (!isset($_SESSION['user'])) {
 	$query = mysqli_prepare($db, 'INSERT INTO `images` (`id`, `ext`, `ip`) VALUES (?, ?, ?)');
 	mysqli_stmt_bind_param($query, 'sss', $id, $ext, $ip);
-}
-else
-{
+} else {
 	$query = mysqli_prepare($db, 'INSERT INTO `images` (`id`, `ext`, `user`, `ip`) VALUES (?, ?, ?, ?)');
 	mysqli_stmt_bind_param($query, 'ssis', $id, $ext, $user, $ip);
 }
 // set data for query
 $user = $_SESSION['user'];
-if (isset($_SERVER['HTTP_CF_CONNECTING_IP']))
-{
+if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
 	$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-}
-else
-{
+} else {
 	$ip = $_SERVER['REMOTE_ADDR'];
-} 
+}
 // insert data
 mysqli_stmt_execute($query);
 ++$db_queries;

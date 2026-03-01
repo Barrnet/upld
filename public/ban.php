@@ -17,6 +17,8 @@ if (!ctype_digit($_GET['id']))
 }
 $id = $_GET['id'];
 require('db.php');
+//TODO nel DB i flag admin e banned sono definiti come enum,
+//se gli stati sono sempre 0 e 1 mi sembra sbagliato meglio bool o tinyint se più stati
 $exists = mysqli_prepare($db, 'SELECT EXISTS(SELECT 1 FROM `users` WHERE `id` = ?)');
 // query DB to see if ID exists
 mysqli_stmt_bind_param($exists, 'i', $id);
