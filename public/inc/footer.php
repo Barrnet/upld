@@ -11,6 +11,7 @@ if (!defined('IN_SCRIPT'))
 	</div>
 	<script src="js/jquery.min.js" type="text/javascript"></script>	
 	<script src="js/upload.js" type="text/javascript"></script>
+	<script src="../js/imagecrop.js" type="text/javascript"></script>
 <script>
 $( document ).ready(function() {
    [].forEach.call(document.querySelectorAll('img[data-src]'), function(img) {

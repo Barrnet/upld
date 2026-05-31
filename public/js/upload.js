@@ -11,9 +11,14 @@ window.addEventListener('paste', e =>
 	}
 	else
 	{
-		// contains a file
-		fileInput.files = e.clipboardData.files;
-		$('#upload-form').submit();
+		// contains a file — feed it through the cropper instead of uploading directly
+		const files = e.clipboardData.files;
+		if (files.length > 0) {
+			const dt = new DataTransfer();
+			dt.items.add(files[0]);
+			fileInput.files = dt.files;
+			fileInput.dispatchEvent(new Event('change'));
+		}
 	}
 });
  

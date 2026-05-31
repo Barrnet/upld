@@ -16,6 +16,18 @@ const config = {
 
 const canvas = document.getElementById("crop-canvas");
 const ctx = canvas.getContext("2d");
+
+// Normalizza le coordinate del mouse rispetto alle dimensioni logiche del canvas
+// (necessario quando il canvas è ridimensionato via CSS)
+function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
 let img = new Image();
 let originalMime = null;
 
@@ -55,14 +67,23 @@ function clampImageToCanvas() {
     const imgW = img.width * scale;
     const imgH = img.height * scale;
 
-    if (posX > 0) posX = 0;
-    if (posY > 0) posY = 0;
+    if (imgW >= canvas.width) {
+        // immagine più larga del canvas: tienila ai bordi
+        if (posX > 0) posX = 0;
+        if (posX + imgW < canvas.width) posX = canvas.width - imgW;
+    } else {
+        // immagine più stretta: lasciala muovere liberamente nel canvas
+        if (posX < 0) posX = 0;
+        if (posX + imgW > canvas.width) posX = canvas.width - imgW;
+    }
 
-    if (posX + imgW < canvas.width)
-        posX = canvas.width - imgW;
-
-    if (posY + imgH < canvas.height)
-        posY = canvas.height - imgH;
+    if (imgH >= canvas.height) {
+        if (posY > 0) posY = 0;
+        if (posY + imgH < canvas.height) posY = canvas.height - imgH;
+    } else {
+        if (posY < 0) posY = 0;
+        if (posY + imgH > canvas.height) posY = canvas.height - imgH;
+    }
 }
 
 function loadImageFromBlob(blob) {
@@ -85,6 +106,11 @@ function loadImageFromBlob(blob) {
             zoomLabel.textContent = zoomSlider.value + "%";
 
             overlayPattern = createOverlayPattern();
+
+            // Mostra il box del cropper
+            document.getElementById("preview-box").classList.remove("hidden");
+
+            draw();
         };
         img.src = ev.target.result;
     };
@@ -96,14 +122,18 @@ document.getElementById("image-input").addEventListener("change", e => {
     if (file) loadImageFromBlob(file);
 });
 
-document.getElementById("load-url").addEventListener("click", () => {
-    const url = document.getElementById("image-url").value.trim();
-    if (!url) return;
-    fetch(url)
-        .then(res => res.blob())
-        .then(blob => loadImageFromBlob(blob))
-        .catch(() => alert("Impossibile caricare l'immagine dal link"));
-});
+// Caricamento da URL (opzionale: solo se i relativi elementi esistono nel DOM)
+const loadUrlBtn = document.getElementById("load-url");
+if (loadUrlBtn) {
+    loadUrlBtn.addEventListener("click", () => {
+        const url = document.getElementById("image-url").value.trim();
+        if (!url) return;
+        fetch(url)
+            .then(res => res.blob())
+            .then(blob => loadImageFromBlob(blob))
+            .catch(() => alert("Impossibile caricare l'immagine dal link"));
+    });
+}
 
 function updateHandles() {
     const hs = HANDLE / 2;
@@ -164,7 +194,8 @@ zoomSlider.addEventListener("input", () => {
 
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
-    const mx = e.offsetX, my = e.offsetY;
+    const wpos = getCanvasPos(e);
+    const mx = wpos.x, my = wpos.y;
     const old = scale;
     scale *= e.deltaY < 0 ? config.zoomWheelSpeed : 1 / config.zoomWheelSpeed;
     scale = Math.min(config.zoomMax, Math.max(config.zoomMin, scale));
@@ -198,8 +229,9 @@ canvas.addEventListener("touchmove", e => {
 canvas.addEventListener("touchend", () => lastTouchDist = null);
 
 canvas.addEventListener("mousedown", e => {
-    startX = e.offsetX;
-    startY = e.offsetY;
+    const pos = getCanvasPos(e);
+    startX = pos.x;
+    startY = pos.y;
     for (let h in handles) {
         const mh = handles[h];
         if (startX >= mh.x && startX <= mh.x + HANDLE && startY >= mh.y && startY <= mh.y + HANDLE) {
@@ -216,8 +248,9 @@ canvas.addEventListener("mousedown", e => {
 });
 
 canvas.addEventListener("mousemove", e => {
-    const dx = e.offsetX - startX;
-    const dy = e.offsetY - startY;
+    const pos = getCanvasPos(e);
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
 
     if (isResizing && activeHandle) {
         switch (activeHandle) {
@@ -232,8 +265,8 @@ canvas.addEventListener("mousemove", e => {
         }
         if (cropW < config.cropMinW) cropW = config.cropMinW;
         if (cropH < config.cropMinH) cropH = config.cropMinH;
-        startX = e.offsetX;
-        startY = e.offsetY;
+        startX = pos.x;
+        startY = pos.y;
         clampImageToCanvas();
         draw();
         return;
@@ -242,8 +275,8 @@ canvas.addEventListener("mousemove", e => {
     if (isDraggingCrop) {
         cropX += dx;
         cropY += dy;
-        startX = e.offsetX;
-        startY = e.offsetY;
+        startX = pos.x;
+        startY = pos.y;
         draw();
         return;
     }
@@ -252,8 +285,8 @@ canvas.addEventListener("mousemove", e => {
         posX += dx;
         posY += dy;
         clampImageToCanvas();
-        startX = e.offsetX;
-        startY = e.offsetY;
+        startX = pos.x;
+        startY = pos.y;
         draw();
     }
 });
@@ -273,7 +306,6 @@ document.getElementById("recenter-image").addEventListener("click", () => {
     clampImageToCanvas();
     draw();
 });
-
 
 document.getElementById("crop-reset").addEventListener("click", () => {
     cropW = config.cropDefaultW;
@@ -309,6 +341,9 @@ document.getElementById("crop-confirm").addEventListener("click", () => {
         const dt = new DataTransfer();
         dt.items.add(file);
         document.getElementById("image-input").files = dt.files;
-        alert("Immagine ritagliata pronta per l'upload");
+
+        // Nascondi il cropper e procedi con l'upload
+        document.getElementById("preview-box").classList.add("hidden");
+        $('#upload-form').submit();
     }, originalMime);
 });
