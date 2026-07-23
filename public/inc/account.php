@@ -65,7 +65,7 @@ while (mysqli_stmt_fetch($images))
 {
 ?>
 		--><div class="user-image-box">
-			<a href="<?php echo VIEW_PATH . $id; ?>"><img class="user-image" src="thumbs/<?php echo $id . '.jpg'; ?>" alt="<?php echo $id; ?>" /></a>
+			<a href="<?php echo VIEW_PATH . $id; ?>"><img class="user-image" src="thumbs/<?php echo substr($id, 0, 2)."/".$id . '.jpg'; ?>" alt="<?php echo $id; ?>" /></a>
 			<ul class="image-actions">
 				<li><?php echo UPLOAD_TIME." ".$time; ?></li>
 				<li><a class="delete" href="delete.php?id=<?php echo $id . '&csrf=' . $_SESSION['csrf']; ?>"><?php echo ACCOUNT_DEL_IMAGE; ?></a></li>

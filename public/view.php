@@ -26,8 +26,9 @@ if ($removed === '1')
 }
 mysqli_stmt_close($image);
 mysqli_close($db);
-$dimensions = getimagesize('images/' . $id . '.' . $ext);
-$size = (filesize('images/' . $id . '.' . $ext) / 1024);
+
+$dimensions = getimagesize('images/'.substr($id, 0, 2). "/" . $id . '.' . $ext);
+$size = (filesize('images/' .substr($id, 0, 2). "/" . $id . '.' . $ext) / 1024);
 require('inc/header.php');
 require('inc/view.php');
 require('inc/footer.php');

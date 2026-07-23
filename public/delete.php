@@ -32,13 +32,30 @@ mysqli_stmt_fetch($exists);
 mysqli_stmt_close($exists);
 if (!isset($_SESSION['admin']) && ($_SESSION['user'] !== $user))
 {
-	exit(CSRF_ERROR);
+	exit(NOT_ADMIN);
 }
-unlink('images/' . $id . '.' . $ext);
-$thumb = 'thumbs/' . $id . '.jpg';
+
+$dir = substr($id, 0, 2);
+
+$image = "images/$dir/$id.$ext";
+$thumb = "thumbs/$dir/$id.jpg";
+
+// delete image
+if (file_exists($image))
+{
+	if (!unlink($image))
+	{
+		exit_message(DELETE_IMAGE_FAILED);
+	}
+}
+
+// delete thumbnail
 if (file_exists($thumb))
 {
-	unlink($thumb);
+	if (!unlink($thumb))
+	{
+		exit_message(DELETE_THUMB_FAILED);
+	}
 }
 $delete = mysqli_prepare($db, 'UPDATE `images` SET `removed` = "1" WHERE `id` = ?');
 mysqli_stmt_bind_param($delete, 's', $id);
@@ -64,5 +81,6 @@ if ($result === 1)
 	++$db_queries;
 	mysqli_stmt_close($actioned);
 }
+
 mysqli_close($db);
 exit_message(DELETE_IMAGE_SUCCESS ." ".$_GET['id']);
