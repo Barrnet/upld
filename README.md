@@ -19,3 +19,4 @@ New function:
 * Change password and email from the user panel
 * Reset password via email
 * Support for .webp format
+* Store uploaded images in subdirectories to improve filesystem performance.
