@@ -20,7 +20,7 @@ if (!defined('IN_SCRIPT'))
 		<li><?php echo VIEW_BBCODE;?></li>
 		<li><input type="text" size="25" value="[img]<?php echo IMAGES_URL . substr($id, 0, 2)."/". $id . '.' . $ext; ?>[/img]" readonly /></li>
 		<li><?php echo VIEW_BBCODE_WITH_LINK;?></li>
-		<li><input type="text" size="25" value="[url=<?php echo VIEW_URL .substr($id, 0, 2)."/". $id; ?>][img]<?php echo IMAGES_URL .substr($id, 0, 2)."/". $id . '.' . $ext; ?>[/img][/url]" readonly /></li>
+		<li><input type="text" size="25" value="[url=<?php echo VIEW_URL . $id; ?>][img]<?php echo IMAGES_URL .substr($id, 0, 2)."/". $id . '.' . $ext; ?>[/img][/url]" readonly /></li>
 	</ul>
 
 	<ul id="info" class="box sidebar-box">
